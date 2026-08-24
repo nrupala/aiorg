@@ -1,5 +1,5 @@
-/// AIORG — Orchestrated AI Software Development Company
-/// M1 scaffolding: version display + role listing.
+/// AIORG — Orchestrated AI Software Development Company.
+/// Entry point for M1 (version + roles) and M2+ (provider + pipeline).
 use std::fs;
 use std::path::Path;
 
@@ -23,7 +23,7 @@ fn main() {
         println!("AIORG version: {}", version);
     }
 
-    // List the 9 v1 roles from org/roles TOML files (hardcoded for M1)
+    // List the 9 v1 roles from org/roles (hardcoded for M1)
     let roles: &[&str] = &[
         "Dispatcher: Qwen3-8B-Q4_K_M",
         "Analyst: Qwen3-8B",
@@ -48,6 +48,40 @@ fn main() {
         Err(_) => println!("llama.cpp router :8830 not reachable (start with llama-engine.ps1 -Start)"),
     }
 
-    // Show CARGO_HOME / project root for debugging
-    println!("\nRun `aiorg --help` for command list (M1 skeleton).");
+    // CLI subcommand handling
+    let args: Vec<String> = std::env::args().collect();
+    if args.len() > 1 {
+        match args[1].as_str() {
+            "--help" | "-h" => {
+                println!("\nAIORG CLI v{}\n", version);
+                println!("Available commands:");
+                println!("  --help, -h          Show this help message");
+                println!("  version             Print AIORG version");
+                println!("  roles               List the 9 v1 roles");
+                println!("  doctor              Probe engine environment health");
+                println!("\nFor full pipeline (M2+): invoke individual roles or run the company");
+                println!("pipeline with `aiorg run \"brief\"` after configuration.");
+            }
+            "version" => println!("AIORG version: {}", version),
+            "roles" => {
+                for (i, role) in roles.iter().enumerate() {
+                    println!("{}. {}", i + 1, role);
+                }
+            }
+            "doctor" => {
+                print!("\nEngine probe: ");
+                match std::net::TcpStream::connect("127.0.0.1:8830") {
+                    Ok(_) => println!("llama.cpp router :8830 reachable"),
+                    Err(_) => println!("llama.cpp router :8830 not reachable (start with llama-engine.ps1 -Start)"),
+                }
+            }
+            _ => {
+                println!("\nUnknown command: `{}`", args[1]);
+                println!("Run `aiorg --help` for available commands.");
+            }
+        }
+    } else {
+        // Default: show version + roles + probe (already printed above)
+        println!();
+    }
 }
