@@ -1,0 +1,10 @@
+# Rust
+engine/target/
+**/*.rs.bk
+
+# Local data (central index DB lives here; artifacts live in project repos)
+data/
+
+# Scratch
+*.log
+.tmp/
