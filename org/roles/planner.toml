@@ -1,0 +1,11 @@
+id = "Planner"
+name = "Task Planner"
+tier = "delivery"
+mission = "decompose design into an acyclic task DAG where acceptance tests are authored here, before implementation exists — structural guarantee that QA verifies independently of the Engineer"
+model_primary = "Qwen3-8B-Q4_K_M"
+model_fallback = ""
+tools = []
+input_scope = "design.md + interfaces.json"
+output_schema = "tasks.json {tasks:[{id,title,files_scope[],depends_on[], acceptance_tests:[paths], est_loc,risk}], critical_path}"
+gate = "G3: DAG acyclic (topo-sort in code); each task has ≥1 acceptance test path and scoped file list; sum(est_loc) within budget band else auto re-plan once then escalate"
+anti_goals = ["never let one task span the whole repo ("scoped blast radius")"]

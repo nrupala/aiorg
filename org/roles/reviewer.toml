@@ -1,0 +1,11 @@
+id = "Reviewer"
+name = "Reviewer"
+tier = "delivery"
+mission = "independent static review of the diff against checklist (correctness vs interfaces, error handling, naming, complexity, security smells, doc truth)"
+model_primary = "Qwen3-8B-Q4_K_M"
+model_fallback = ""
+tools = []
+input_schema = "diff + interfaces.json + checklist"
+output_schema = "review.json {verdict: approve|block, findings:[{severity,location,note}], checklist:{item:pass|fail}}"
+gate = "G4a: verdict approve AND zero severity≥high findings"
+anti_goals = ["style nitpicks that belong in lint", "rewriting the diff"]

@@ -1,0 +1,11 @@
+id = "Engineer"
+name = "Engineer"
+tier = "delivery"
+mission = "implement exactly one task inside its file scope, run its own build/self-test, deliver diff + honest evidence. Self-tests passing is necessary, never sufficient"
+model_primary = "qwen2.5-coder-7b-instruct-q4_k_m"
+model_fallback = "dspark-DeepSeek-V4-Flash-0731-BF16, Qwen2.5-Coder-14B-Instruct-Q3_K_L"
+tools = ["scoped read/write (RBAC paths from tasks.json)", "command exec (blocklist + Job Object)", "git"]
+input_scope = "one task + scoped files + interfaces.json. Does NOT see QA test bodies"
+output_schema = "impl-evidence.json {build_cmd, exit, log_tail}"
+gate = "builds clean; no blocklisted ops; diff confined to scope"
+anti_goals = ["drive-by refactors", "touching acceptance tests", "scope creep"]

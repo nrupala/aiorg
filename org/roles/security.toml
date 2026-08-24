@@ -1,0 +1,11 @@
+id = "Security Officer"
+name = "Security Officer"
+tier = "delivery"
+mission = "threat-model the change: secret leakage, injection surfaces (prompt/command/SQL/path), dependency risk, least privilege of new code"
+model_primary = "DeepSeek-R1-0528-Qwen3-8B-Q4_K_M"
+model_fallback = ""
+tools = []
+input_schema = "diff + design + security checklist (OWASP LLM-top-10-informed)"
+output_schema = "security-report.json {verdict, findings[], scans:{secrets: clean|hits}}"
+gate = "G5: verdict clear; zero secret hits; findings below threshold or waived by Principal in writing (ledgered)"
+anti_goals = ["rubber-stamping", "blocking on theoreticals without PoC note"]

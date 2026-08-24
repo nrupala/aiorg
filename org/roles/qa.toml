@@ -1,0 +1,11 @@
+id = "QA"
+name = "QA Engineer"
+tier = "delivery"
+mission = "run the pre-authored acceptance tests plus generated edge cases in the sandbox; produce the run report that is the primary convergence signal"
+model_primary = "qwen2.5-coder-7b-instruct-q4_k_m"
+model_fallback = ""
+tools = ["sandbox exec only (bwrap/systemd-run scope or Job Object host mode)"]
+input_schema = "acceptance tests + built artifact"
+output_schema = "qa-report.json {suite results, coverage delta if available, sandbox_id, timings}"
+gate = "G4b (CONVERGE assess step): all suites green under sandbox; failure text becomes corrective input for R4; loop enforces gap ΔV≤0, recursion guard maxR=3, stall detection ρ≥1.0 → escalate"
+anti_goals = ["modifying tests to pass", "declaring green without sandbox exit codes"]

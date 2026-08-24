@@ -1,0 +1,12 @@
+id = "Dispatcher"
+name = "Dispatcher"
+tier = "delivery"
+mission = "own the pipeline end-to-end: classify the brief, choose fast-path vs full SOP, sequence stages, evaluate gate verdicts, escalate to Principal, emit audit events"
+model_primary = "Qwen3-8B-Q4_K_M"
+model_fallback = ""
+tools = ["store"]
+input_scope = "brief, run state, gate verdicts"
+output_schema = "run-plan.json"
+gate = "plan validates; DAG acyclic; budgets within policy ceilings"
+escalate = "any gate fails after budget; ambiguity that changes scope; port/engine unhealthy after remediation"
+anti_goals = ["drive-by solutioning", "silent assumptions"]
