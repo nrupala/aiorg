@@ -1,0 +1,91 @@
+# AIORG Requester SOP Template
+# ==============================
+# Fill this template to request AIORG deliver a specific outcome deterministically.
+# Completed templates are placed alongside org/roles/*.toml and org/sop/*.toml
+# AIORG's Dispatcher state machine will sequence through all 9 v1 roles to deliver
+# the outcome with G1–G6 gate enforcement, ΔV≤0 budget tracking, and HMAC convergence certificates.
+
+# ---------------------------------------------------------------------------
+# SECTION 1: BRIEF (REQUIRED)
+# ---------------------------------------------------------------------------
+# Natural language description of the outcome you want AIORG to deliver.
+# Be specific but concise. AIORG works best with well-defined, bounded tasks.
+
+brief = ""
+
+# ---------------------------------------------------------------------------
+# SECTION 2: SUCCESS CRITERIA (REQUIRED)
+# ---------------------------------------------------------------------------
+# Concrete, measurable criteria that define "done" for this project.
+# AIORG will attempt to satisfy all listed criteria through the CONVERGE pipeline.
+
+success_criteria = [
+    # Example: "Personal task tracker web app with user auth, React frontend, Flask API"
+    # Example: "HTML report with 3 charts analyzing Q3 sales data"
+]
+
+# ---------------------------------------------------------------------------
+# SECTION 3: BUDGET & CAP (REQUIRED)
+# ---------------------------------------------------------------------------
+# Token budget for this project. AIORG enforces per-project and total caps.
+
+per_project_token_cap = 200000    # Maximum tokens for this project (default: 200k)
+total_budget_cap = 1000000       # Across-all-projects cap (default: 1M, set in dispatcher)
+
+# ---------------------------------------------------------------------------
+# SECTION 4: DELIVERY CONSTRAINTS (OPTIONAL)
+# ---------------------------------------------------------------------------
+# Constraints that AIORG must respect during execution.
+
+model_preference = ""             # e.g. "Qwen3-8B-Q4_K_M" or leave blank for default roster
+max_token_context = 8192          # Hard cap on combined context for all role outputs
+disallowed_apis = []              # List of API surface references to avoid (e.g. ["openai", "anthropic"])
+sandbox_mode = "wsl"              # "wsl" or "host" (default: wsl)
+
+# ---------------------------------------------------------------------------
+# SECTION 5: TIMELINE & DEADLINE (OPTIONAL)
+# ---------------------------------------------------------------------------
+# If you have timing requirements.
+
+target_completion = ""            # e.g. "2026-09-01" or "within 5 business days"
+milestone_checkpoints = []        # Optional list of milestone dates/names
+
+# ---------------------------------------------------------------------------
+# SECTION 6: POLICY & COMPLIANCE (OPTIONAL)
+# ---------------------------------------------------------------------------
+# Any policy constraints AIORG must obey.
+
+required_certificates = []        # e.g. ["security_threat_scan", "assembly_check"]
+forbidden_violations = []         # e.g. ["ΔV≤0 widening", "budget overrun"]
+special_instructions = ""         # Any other requirements or constraints
+
+# ---------------------------------------------------------------------------
+# SECTION 7: EXAMPLE FILL-OUT (INSTRUCTIONAL - DO NOT REMOVE)
+# ---------------------------------------------------------------------------
+# Uncomment and modify the examples below to match your use case.
+
+# brief = "Build a personal task tracker web app with user authentication, a React frontend, and a Python/Flask backend API."
+# success_criteria = [
+#     "React frontend with task creation, editing, and deletion",
+#     "Flask API with POST /tasks, GET /tasks, DELETE /tasks endpoints",
+#     "User authentication with login/signup routes",
+#     "SQLite database persistence",
+# ]
+# per_project_token_cap = 250000
+# model_preference = "Qwen3-8B-Q4_K_M"
+# sandbox_mode = "wsl"
+# target_completion = "2026-09-15"
+# required_certificates = ["security_threat_scan"]
+
+# ---------------------------------------------------------------------------
+# SECTION 8: SUBMISSION INSTRUCTIONS
+# ---------------------------------------------------------------------------
+# 1. Copy this template to a new file in org/sop/ (e.g. requester_myproject.toml)
+# 2. Fill in all REQUIRED sections (1–3, at minimum)
+# 3. Save the file
+# 3. AIORG will automatically detect and sequence through the CONVERGE pipeline
+# 4. Results, convergence certificate, and budget report will be written to
+#    the project directory upon completion
+# 5. Use `aiorg status` or `aiorg certificate_verify` to verify completion
+
+# ---------------------------------------------------------------------------

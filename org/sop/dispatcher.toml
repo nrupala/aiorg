@@ -1,0 +1,47 @@
+# Dispatcher SOP — M4 CONVERGE Pipeline
+
+# Purpose
+Coordinate role execution order, enforce ΔV≤0 (no gap widening), manage budgets,
+and drive escalation bundles when stalls or recursion limits are hit.
+
+# Inputs
+- `org/roles/*.toml` — role profiles with model routes, tools, gates
+- `org/rbac/*.toml` — role file-scopes and permissions
+- `VERSION` — canonical version string
+- `build.rs` — read-only VERSION source of truth
+
+# Outputs
+- Execution plan with role order and gate sequencing
+- ΔV≤0 guard: if any role's output gap exceeds the prior stage, rollback and escalate
+- Budget accounting: track token usage per role, enforce per-role caps
+- Escalation bundle: JSON file written to `escalations/` when G6 or stall conditions trigger
+
+# Gates
+- G1: Role profile validation (profile exists, model route reachable, tools allowlist valid)
+- G2: ΔV≤0 check (new stage gap ≤ prior stage gap; if violated → escalate)
+- G3: Budget check (token usage ≤ per-role cap from profile)
+- G4: Sandbox health (WSL bwrap probe OR host Job-Object probe must pass)
+- G5: Recursion limit (max 5 nested role rounds per execution)
+- G6: Convergence certificate (HMAC-signed artifact hash; producer ≠ verifier)
+
+# Anti-Goals
+- No unbounded role chaining
+- No model context overflow (stages capped at 8192 ctx)
+- No secrets in prompt templates
+
+# Escalation Bundle Format (written to escalations/<timestamp>.json)
+```json
+{
+  "timestamp": "2026-08-24THH:MM:SSZ",
+  "trigger": "G2|G3|G4|G5|G6",
+  "role": "<role_id>",
+  "gap_violation": "<details>",
+  "budget_exceeded": "<details>",
+  "sandbox_unhealthy": "<details>",
+  "escalation_level": "L1|L2|L3",
+  "producer": "aiorg-dispatcher",
+  "verifier": "aiorg-guard",
+  "hmac": "<computed-hmac>",
+  "resolution": "<rollback|retry|abort>"
+}
+```

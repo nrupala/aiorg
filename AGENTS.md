@@ -1,8 +1,9 @@
 # AGENTS.md — rules for any agent working in this repository
 
 This repo is AIORG: an orchestrated multi-agent software development company.
-Until the owner approves `docs/07-execution-plan.md`, this repo is DOCS-ONLY:
-do not create implementation code.
+The owner has approved implementation. Changes must follow the execution plan,
+remain local-first, preserve the no-Docker rule, and pass the required Rust
+verification gates before delivery.
 
 ## Verification is the definition of done
 
@@ -21,8 +22,12 @@ real tool output:
 1. Self-contained: no path/git dependencies on other local projects
    (D:\Harness, opencodelocal, oclrust are DIFFERENT tools).
 2. Engines: llama.cpp router at http://127.0.0.1:8830/v1 (model ids come from
-   `C:\Users\nrupa\.config\opencode\local-engines\router-models.ini`) and
-   Ollama at http://127.0.0.1:11434. Loopback only.
+   `C:\Users\nrupa\.config\opencode\local-engines\router-models.ini`). Loopback
+   only. Ollama is PERMANENTLY DROPPED (owner decision 2026-09-06, standing rule
+   17): :11434 stays free and no provider code path may target it. Deep-tier
+   escalation, when built, is a second llama.cpp server (e.g. :8834), never
+   Ollama. Optional upstream for context governance: orchestrator
+   http://127.0.0.1:8832/v1 (fallback to :8830 direct if it fails).
 3. Reasoning models return text in `message.reasoning_content` — always read
    BOTH `content` and `reasoning_content`.
 4. Ports owned by AIORG: serve :8850, optional MCP HTTP :8851. Fail fast if busy.

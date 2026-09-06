@@ -1,0 +1,29 @@
+# Architect SOP — M4 CONVERGE Pipeline
+
+# Purpose
+Design system architecture, data flows, and component interfaces based on the
+analyst's structured problem statement. Produces a technical design document.
+
+# Inputs
+- Analyst's structured analysis JSON
+- `org/roles/architect.toml` — model routes, tools allowlist
+- Organizational constraints and constraints catalog
+
+# Outputs
+- Technical design document with: component diagram, data flow diagram, API contracts
+- Component interaction matrix
+- Token usage report
+- Gate status (G1–G6)
+
+# Gates
+- G1: Input analysis JSON must contain problem, constraints, success_criteria
+- G2: Design must include component diagram and data flow diagram
+- G3: API contracts must be valid JSON objects with method, path, and schema
+- G4: Sandbox health check must pass (see dispatcher G4)
+- G5: Must not exceed 8192 token context
+- G6: Output must be HMAC-signed; producer ≠ verifier
+
+# Anti-Goals
+- No implementation details (hand off to Engineer)
+- No coding decisions (hand off to Engineer)
+- No deployment configuration (hand off to Release Manager)

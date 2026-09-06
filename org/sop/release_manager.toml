@@ -1,0 +1,32 @@
+# Release Manager SOP — M4 CONVERGE Pipeline
+
+# Purpose
+Package and release validated artifacts. Generate release notes, version bumps,
+and distribution. Coordinate with the convergence certificate verifier.
+
+# Inputs
+- QA test results and convergence verification
+- `org/roles/release_manager.toml` — model routes, tools allowlist
+- VERSION file (canonical source of truth)
+- CHANGELOG.md (Keep-a-Changelog format)
+
+# Outputs
+- Version bump (SemVer X.Y.Z) following guard: tag == VERSION
+- Release notes generated from CHANGELOG promotion
+- Distribution package (zip/tar.gz) with HMAC-signed certificate
+- MCP deployment records (serverInfo.version stamped from VERSION)
+- Token usage summary for release process
+- Gate status (G1–G6)
+
+# Gates
+- G1: VERSION file must exist and be valid SemVer
+- G2: CHANGELOG.md must exist in Keep-a-Changelog format
+- G3: QA test results must show convergence (pass threshold)
+- G4: Sandbox health check must pass (see dispatcher G4)
+- G5: Must not exceed token limits for note generation
+- G6: Convergence certificate HMAC verified; producer ≠ verifier
+
+# Anti-Goals
+- No code changes (hand off to Engineer)
+- No architecture decisions (hand off to Architect)
+- No security assessment beyond certificate validation (hand off to Security)
