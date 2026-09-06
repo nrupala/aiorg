@@ -149,7 +149,7 @@ async fn role_chat(
                 mode: config::Mode::Cloud,
                 local_provider: "local".into(),
                 local_model: route.local_model.clone(),
-                cloud_provider: name.to_string(),
+                cloud_provider: route.cloud_provider.clone(),
                 cloud_model: route.cloud_model.clone(),
             };
             let try_chat = || async {
