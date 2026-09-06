@@ -1,0 +1,31 @@
+# Security SOP — M4 CONVERGE Pipeline
+
+# Purpose
+Security review of all pipeline artifacts. Threat model validation, secret
+detection, input validation, and MAST counter-map compliance. Ensures the
+pipeline obeys the need-to-know scoping and guardrail constraints.
+
+# Inputs
+- All pipeline artifacts from brief through review
+- `org/roles/security.toml` — model routes, tools allowlist
+- Threat model (docs/03-guardrails.md)
+- MAST counter-map (docs/03-guardrails.md)
+
+# Outputs
+- Security assessment report with: threat score, violations, secret scan results,
+  MAST compliance status, recommendation (pass/fail/escalate)
+- Token usage summary
+- Gate status (G1–G6)
+
+# Gates
+- G1: All prior artifacts must be present for scanning
+- G2: Threat model must be referenced and violations documented
+- G3: Secret detection must run on all code and prompt files
+- G4: Sandbox health check must pass (see dispatcher G4)
+- G5: Must not exceed 8192 token context for analysis prompts
+- G6: Output must be HMAC-signed; producer ≠ verifier
+
+# Anti-Goals
+- No code changes (hand off to Engineer)
+- No deployment decisions (hand off to Release Manager)
+- No model context expansion beyond 8192 (hard cap for KV cache safety)

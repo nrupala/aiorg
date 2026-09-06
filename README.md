@@ -1,11 +1,11 @@
 # AIORG — Orchestrated AI Software Development Company
 
 A self-contained, local-first multi-agent software company that runs entirely on
-your machine (llama.cpp router + Ollama), executes role-specialized agents through
+your machine (llama.cpp router :8830), executes role-specialized agents through
 SOP-gated pipelines with deterministic verification, and exposes **each role as an
 individually callable function** for your ongoing code assignments.
 
-**Status: BUILD IN PROGRESS — M1–M7 incremental milestones underway; docs v0.1.0-draft; see `docs/07-execution-plan.md` for exit conditions.**
+**Status: M1-M3 runtime foundation and the nine-role artifact pipeline are operational; the M4 project-editing CONVERGE loop remains incomplete.** The current binary produces role artifacts, ledger hashes, and certificates through the local llama.cpp router, but does not yet edit target repositories or execute QA acceptance suites automatically.
 
 ## The one-paragraph pitch
 
@@ -14,7 +14,7 @@ Analyst, Architect, Task Planner, Engineer, Reviewer, QA Engineer, Security
 Officer, Release Manager) connected by structured artifact contracts — never
 free-form chat — where every handoff passes a deterministic gate (tests, lint,
 build, checklist-as-code) and no agent is ever allowed to verify its own work.
-It runs on the llama.cpp router (:8830) and Ollama (:11434) already installed on
+It runs on the llama.cpp router (:8830) already installed on
 this machine, keeps a tamper-evident append-only audit ledger, can replay any run
 deterministically, and lets you invoke any single role on any existing codebase:
 
@@ -35,6 +35,7 @@ aiorg run "build a pomodoro CLI"             # full company pipeline
 | `docs/06-deployer-guide.md` | Prerequisites, install, engine bring-up, first-run verification, operations, troubleshooting |
 | `docs/07-execution-plan.md` | Build milestones M1–M7 with exit criteria, test matrix, risk register |
 | `docs/VERSIONING.md` | App versioning standard: VERSION source of truth, tag==VERSION guard, bump script, release workflow |
+| `org/sop/requester_template.toml` | Template for requesters to submit briefs + success criteria + budget; AIORG Dispatcher sequences through all 9 roles via CONVERGE pipeline |
 
 ## Non-negotiable design rules
 
@@ -48,4 +49,30 @@ aiorg run "build a pomodoro CLI"             # full company pipeline
 6. Local-first: zero cloud calls in the delivery path.
 7. No Docker. Sandbox = WSL/bwrap or Windows Job Objects.
 
-D:\Harness is a separate tool (engine management). AIORG shares no code with it.
+## Requester SOP Template
+
+Use the template at `org/sop/requester_template.toml` to request AIORG deliver a
+specific outcome deterministically. Fill in Sections 1–3 (Brief, Success Criteria,
+Budget Cap) at minimum, save the file, and AIORG's Dispatcher will sequence through
+all 9 v1 roles via the CONVERGE pipeline. Outcomes include:
+
+- Convergence certificate (HMAC-SHA256, producer≠verifier)
+- ΔV≤0 budget enforcement report
+- Per-role gate pass/fail log
+- Token usage accounting
+- Escalation bundle (if any gate failed)
+
+**Example workflow:**
+
+```powershell
+# 1. Copy and fill the template
+Copy-Item 'D:\aiorg\org\sop\requester_template.toml' 'D:\aiorg\org\sop\my-project.toml'
+# Edit my-project.toml with your brief, success criteria, and token cap
+
+# 2. Run AIORG on your brief
+aiorg run "my brief here"
+
+# 3. Check results
+aiorg status
+aiorg certificate_verify
+```

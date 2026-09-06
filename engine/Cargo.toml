@@ -7,17 +7,15 @@ edition = "2021"
 name = "aiorg"
 path = "src/main.rs"
 
-[workspace.dependencies]
+[workspace]
+members = ["provider"]
+
+[dependencies]
+anyhow = "1"
+provider = { path = "provider" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-thiserror = "2"
-anyhow = "1"
 sha2 = "0.10"
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+toml = "0.8"
 uuid = { version = "1", features = ["v4"] }
-rusqlite = { version = "0.32", features = ["bundled"] }
-regex = "1"
-glob = "0.3"
-tempfile = "3"
-base64 = "0.22"
-getrandom = "0.2"
-provider = { path = "provider" }

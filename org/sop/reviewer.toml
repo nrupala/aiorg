@@ -1,0 +1,30 @@
+# Reviewer SOP — M4 CONVERGE Pipeline
+
+# Purpose
+Review code and artifacts produced by the Engineer for correctness, adherence to
+specifications, and ΔV≤0 compliance. Produce a review report with pass/fail and
+escalation triggers.
+
+# Inputs
+- Engineer's implemented code and prompts
+- `org/roles/reviewer.toml` — model routes, tools allowlist
+- Style guides and specification documents
+
+# Outputs
+- Review report with: pass/fail verdict, list of violations, ΔV≤0 compliance status,
+  token usage, gate status (G1–G6)
+- Fix suggestions (if fail)
+- Escalation bundle (if G6 triggered)
+
+# Gates
+- G1: Input must include source code or structured artifacts
+- G2: Review must evaluate at least one of: type correctness, spec adherence, ΔV≤0
+- G3: Review findings must be grounded in observable code properties
+- G4: Sandbox health check must pass (see dispatcher G4)
+- G5: Must not exceed 8192 token context for review prompt
+- G6: Output must be HMAC-signed; producer ≠ verifier
+
+# Anti-Goals
+- No code changes (hand off to Engineer for fixes)
+- No deployment decisions (hand off to Release Manager)
+- No security assessment beyond code quality (hand off to Security)
