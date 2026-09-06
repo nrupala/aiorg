@@ -52,6 +52,7 @@ async fn main() -> Result<()> {
         Some("gate") => gate(args.get(2).map(String::as_str).unwrap_or(""))?,
         Some("sandbox") => sandbox(args.get(2).map(String::as_str).unwrap_or(""))?,
         Some("run") => run(&args[2..]).await?,
+        Some("correct") => correct(&args[2..]).await?,
         Some("status") => status(&args[2..])?,
         Some("certificate") => certificate(&args[2..])?,
         Some("serve") => server::serve(args.get(2).and_then(|v| v.parse().ok()).unwrap_or(8850))?,
@@ -73,7 +74,7 @@ fn roles() {
     }
 }
 fn help() {
-    println!("AIORG {}\n\nCommands:\n  run <brief> [--project DIR]\n  status [RUN_ID] [--project DIR]\n  certificate <RUN_ID> [--project DIR]\n  serve [PORT]\n  doctor\n  roles\n  gate <js-ts|python|rust|c|sql>\n  sandbox <wsl|host>", version());
+    println!("AIORG {}\n\nCommands:\n  run <brief> [--project DIR] [--acceptance CMD]\n  correct <brief> --project DIR --acceptance CMD\n  status [RUN_ID] [--project DIR]\n  certificate <RUN_ID> [--project DIR]\n  serve [PORT]\n  doctor\n  roles\n  gate <js-ts|python|rust|c|sql>\n  sandbox <wsl|host>", version());
 }
 
 async fn doctor() -> Result<()> {
@@ -173,9 +174,9 @@ async fn run(args: &[String]) -> Result<()> {
         &root.join("run.json"),
         &json!({"run_id":run_id,"brief":brief,"status":"running","model":model()}),
     )?;
-    scope.write(Path::new(".aiorg/current-run"), run_id.as_bytes())?;
-    if scope.read(Path::new(".aiorg/current-run"))? != run_id.as_bytes() {
-        anyhow::bail!("scoped executor readback failed");
+    fs::write(project.join(".aiorg/current-run"), run_id.as_bytes())?;
+    if fs::read(project.join(".aiorg/current-run"))? != run_id.as_bytes() {
+        anyhow::bail!("run state readback failed");
     }
     let provider = Provider::new(router_url(), model())?;
     provider
@@ -239,6 +240,7 @@ async fn run(args: &[String]) -> Result<()> {
         let mut gate = converge::Converger::new(3, 2);
         gate.observe(1.0)?;
         let mut result = 1;
+        let mut applied_cycles: Vec<Vec<executor::AppliedPatch>> = Vec::new();
         for cycle in 1..=3 {
             result = executor::run_bwrap(&project, &command)?;
             store.event(
@@ -248,12 +250,19 @@ async fn run(args: &[String]) -> Result<()> {
             )?;
             if result == 0 {
                 gate.observe(0.0)?;
+                for applied in &applied_cycles {
+                    executor::commit_backup(applied)?;
+                }
                 break;
             }
-            let feedback = format!("Acceptance command failed with exit {result}: {command}. Produce a corrective implementation plan only; no execution claim.");
-            let corrective = provider.chat(Some("Qwen2.5-Coder-7b-instruct-q8_0"), &[json!({"role":"system","content":"You are the AIORG Engineer corrective-cycle role."}), json!({"role":"user","content":feedback})], 2048).await?;
-            let path = root.join(format!("corrective-{cycle}-engineer.md"));
-            fs::write(&path, corrective)?;
+            let feedback = format!("Acceptance command failed with exit {result}: {command}. Return ONLY JSON matching {{\"summary\":string,\"edits\":[{{\"path\":string,\"content\":string}}]}}. Make the smallest source edit that can fix the failure. Never edit .git or .aiorg. Do not include markdown fences.");
+            let corrective = provider.chat(Some(&model()), &[json!({"role":"system","content":"You are the AIORG Engineer corrective-cycle role. You return strict JSON patches only."}), json!({"role":"user","content":feedback})], 2048).await?;
+            let plan = executor::parse_patch(&corrective)?;
+            let backup_root = root.join("backups").join(cycle.to_string());
+            let applied = scope.apply(&plan, &backup_root)?;
+            store.event(&run_id, "corrective.patch.applied", &json!({"cycle":cycle,"summary":plan.summary,"edits":plan.edits.iter().map(|e| &e.path).collect::<Vec<_>>() }))?;
+            let path = root.join(format!("corrective-{cycle}-engineer.json"));
+            fs::write(&path, serde_json::to_vec_pretty(&plan)?)?;
             store.artifact(
                 &run_id,
                 &format!("corrective-{cycle}"),
@@ -261,8 +270,12 @@ async fn run(args: &[String]) -> Result<()> {
                 "engineer",
                 "aiorg-guard",
             )?;
+            applied_cycles.push(applied);
         }
         if result != 0 {
+            for applied in applied_cycles.iter().rev() {
+                executor::rollback(applied)?;
+            }
             anyhow::bail!("acceptance gate failed after three corrective cycles")
         }
         Some(result)
@@ -301,6 +314,40 @@ async fn run(args: &[String]) -> Result<()> {
         root.display()
     );
     Ok(())
+}
+
+async fn correct(args: &[String]) -> Result<()> {
+    let project = project_arg(args)?;
+    let command = acceptance_arg(args).context("correct requires --acceptance")?;
+    let brief = args
+        .iter()
+        .take_while(|v| v.as_str() != "--project" && v.as_str() != "--acceptance")
+        .cloned()
+        .collect::<Vec<_>>()
+        .join(" ");
+    if brief.trim().is_empty() {
+        anyhow::bail!("correct requires a brief");
+    }
+    let scope = executor::Scope::new(&project, &[PathBuf::from(".")])?;
+    if executor::run_bwrap(&project, &command)? == 0 {
+        println!("acceptance=already_passed");
+        return Ok(());
+    }
+    let provider = Provider::new(router_url(), model())?;
+    provider.health().await?;
+    let prompt = format!("Acceptance command failed: {command}. Task: {brief}. Return ONLY JSON {{\"summary\":string,\"edits\":[{{\"path\":string,\"content\":string}}]}}. Make the smallest safe edit. Never edit .git or .aiorg. No markdown fences.");
+    let raw = provider.chat(None, &[json!({"role":"system","content":"You are an autonomous corrective Engineer. Return a strict patch JSON object."}), json!({"role":"user","content":prompt})], 2048).await?;
+    let plan = executor::parse_patch(&raw)?;
+    let backup = project.join(".aiorg/corrective-backup");
+    let applied = scope.apply(&plan, &backup)?;
+    if executor::run_bwrap(&project, &command)? == 0 {
+        executor::commit_backup(&applied)?;
+        println!("acceptance=passed\nsummary={}", plan.summary);
+        Ok(())
+    } else {
+        executor::rollback(&applied)?;
+        anyhow::bail!("corrective patch did not satisfy acceptance; rolled back")
+    }
 }
 
 fn acceptance_arg(args: &[String]) -> Option<String> {
