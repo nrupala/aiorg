@@ -9,6 +9,9 @@ use std::{
 };
 use uuid::Uuid;
 
+mod executor;
+mod store;
+
 const ROLES: &[(&str, &str)] = &[
     (
         "dispatcher",
@@ -118,7 +121,9 @@ fn gate(language: &str) -> Result<()> {
 
 fn sandbox(mode: &str) -> Result<()> {
     let ok = match mode {
-        "wsl" => probe_wsl(),
+        "wsl" => executor::run_bwrap(&env::current_dir()?, "printf AIORG_SANDBOX")
+            .map(|code| code == 0)
+            .unwrap_or(false),
         "host" => false,
         _ => anyhow::bail!("unsupported sandbox: {mode}"),
     };
@@ -157,10 +162,17 @@ async fn run(args: &[String]) -> Result<()> {
     let run_id = Uuid::new_v4().simple().to_string();
     let root = project.join(".aiorg").join("runs").join(&run_id);
     fs::create_dir_all(&root)?;
+    let store = store::Store::open(&project.join(".aiorg"))?;
+    let scope = executor::Scope::new(&project, &[PathBuf::from(".aiorg")])?;
+    store.begin_run(&run_id, &project, &brief)?;
     write_json(
         &root.join("run.json"),
         &json!({"run_id":run_id,"brief":brief,"status":"running","model":model()}),
     )?;
+    scope.write(Path::new(".aiorg/current-run"), run_id.as_bytes())?;
+    if scope.read(Path::new(".aiorg/current-run"))? != run_id.as_bytes() {
+        anyhow::bail!("scoped executor readback failed");
+    }
     let provider = Provider::new(router_url(), model())?;
     provider
         .health()
@@ -202,6 +214,18 @@ async fn run(args: &[String]) -> Result<()> {
         fs::write(&path, &output)?;
         let digest = sha256(output.as_bytes());
         artifacts.push(json!({"role":role,"path":path,"sha256":digest,"producer":role,"verifier":"aiorg-guard"}));
+        store.artifact(
+            &run_id,
+            &format!("{index:02}-{role}"),
+            &path,
+            role,
+            "aiorg-guard",
+        )?;
+        store.event(
+            &run_id,
+            &format!("stage.{role}.complete"),
+            &json!({"artifact_sha256":digest}),
+        )?;
         events.push(json!({"type":format!("stage.{role}.complete"),"artifact_sha256":digest}));
         prior_context = format!("Brief:\n{brief}\n\nPrevious artifact ({role}):\n{output}");
     }
@@ -213,6 +237,7 @@ async fn run(args: &[String]) -> Result<()> {
         &root.join("certificate.json"),
         &json!({"run_id":run_id,"artifact_sha256":certificate_hash,"producer":"aiorg-release","verifier":"aiorg-guard","status":"issued","scope":"role-artifact-pipeline"}),
     )?;
+    store.close_run(&run_id, "artifact_pipeline_complete")?;
     write_json(
         &root.join("run.json"),
         &json!({"run_id":run_id,"brief":brief,"status":"artifact_pipeline_complete","mode":"role-artifact-pipeline","artifacts":artifacts,"certificate_sha256":certificate_hash}),
@@ -235,6 +260,7 @@ fn project_arg(args: &[String]) -> Result<PathBuf> {
 }
 fn status(args: &[String]) -> Result<()> {
     let root = project_arg(args)?;
+    let store = store::Store::open(&root.join(".aiorg"))?;
     let runs = root.join(".aiorg/runs");
     if !runs.exists() {
         println!("no runs");
@@ -245,6 +271,9 @@ fn status(args: &[String]) -> Result<()> {
         if p.exists() {
             println!("{}", fs::read_to_string(p)?);
         }
+    }
+    if let Some(run_id) = args.first().filter(|v| !v.starts_with("--")) {
+        println!("ledger_chain={}", store.verify_chain(run_id)?);
     }
     Ok(())
 }
