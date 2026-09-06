@@ -155,7 +155,7 @@ fn model() -> String {
 async fn run(args: &[String]) -> Result<()> {
     let brief = args
         .iter()
-        .take_while(|x| x.as_str() != "--project")
+        .take_while(|x| x.as_str() != "--project" && x.as_str() != "--acceptance")
         .cloned()
         .collect::<Vec<_>>()
         .join(" ");
@@ -235,6 +235,40 @@ async fn run(args: &[String]) -> Result<()> {
         events.push(json!({"type":format!("stage.{role}.complete"),"artifact_sha256":digest}));
         prior_context = format!("Brief:\n{brief}\n\nPrevious artifact ({role}):\n{output}");
     }
+    let acceptance_result = if let Some(command) = acceptance_arg(args) {
+        let mut gate = converge::Converger::new(3, 2);
+        gate.observe(1.0)?;
+        let mut result = 1;
+        for cycle in 1..=3 {
+            result = executor::run_bwrap(&project, &command)?;
+            store.event(
+                &run_id,
+                "acceptance.cycle",
+                &json!({"cycle":cycle,"exit":result,"command":command}),
+            )?;
+            if result == 0 {
+                gate.observe(0.0)?;
+                break;
+            }
+            let feedback = format!("Acceptance command failed with exit {result}: {command}. Produce a corrective implementation plan only; no execution claim.");
+            let corrective = provider.chat(Some("Qwen2.5-Coder-7b-instruct-q8_0"), &[json!({"role":"system","content":"You are the AIORG Engineer corrective-cycle role."}), json!({"role":"user","content":feedback})], 2048).await?;
+            let path = root.join(format!("corrective-{cycle}-engineer.md"));
+            fs::write(&path, corrective)?;
+            store.artifact(
+                &run_id,
+                &format!("corrective-{cycle}"),
+                &path,
+                "engineer",
+                "aiorg-guard",
+            )?;
+        }
+        if result != 0 {
+            anyhow::bail!("acceptance gate failed after three corrective cycles")
+        }
+        Some(result)
+    } else {
+        None
+    };
     let ledger = json!({"run_id":run_id,"events":events,"artifacts":artifacts,"producer":"aiorg-dispatcher","verifier":"aiorg-guard"});
     let ledger_bytes = serde_json::to_vec_pretty(&ledger)?;
     fs::write(root.join("ledger.json"), &ledger_bytes)?;
@@ -260,13 +294,20 @@ async fn run(args: &[String]) -> Result<()> {
     store.close_run(&run_id, "artifact_pipeline_complete")?;
     write_json(
         &root.join("run.json"),
-        &json!({"run_id":run_id,"brief":brief,"status":"artifact_pipeline_complete","mode":"role-artifact-pipeline","convergence_zero":convergence.converged(),"cycles":convergence.cycles().len(),"artifacts":artifacts,"certificate_sha256":certificate_hash}),
+        &json!({"run_id":run_id,"brief":brief,"status":"artifact_pipeline_complete","mode":"role-artifact-pipeline","convergence_zero":convergence.converged(),"cycles":convergence.cycles().len(),"acceptance_exit":acceptance_result,"artifacts":artifacts,"certificate_sha256":certificate_hash}),
     )?;
     println!(
         "run_id={run_id}\nstatus=artifact_pipeline_complete\ncertificate_sha256={certificate_hash}\nartifacts={}",
         root.display()
     );
     Ok(())
+}
+
+fn acceptance_arg(args: &[String]) -> Option<String> {
+    args.iter()
+        .position(|x| x == "--acceptance")
+        .and_then(|i| args.get(i + 1))
+        .cloned()
 }
 
 fn project_arg(args: &[String]) -> Result<PathBuf> {
