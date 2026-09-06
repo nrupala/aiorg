@@ -20,3 +20,5 @@ This run proves the provider-backed nine-role artifact pipeline. It does not yet
 prove the M4 project-editing loop: scoped write tools, sandboxed acceptance-test
 execution, corrective cycles, delta-V enforcement, or full release verification.
 Those remain implementation work and are not marked complete.
+
+- Acceptance integration live run d7252703351f40a7b1d7928600d3bb1c — bwrap command printf accepted PASS; role artifacts, SQLite ledger, and keyed certificate emitted.
