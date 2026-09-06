@@ -116,8 +116,10 @@ fn provider_for(
     let spec = cfg.providers.get(name).context("provider not configured")?;
     let model = if name == "local" {
         route.local_model.as_str()
-    } else {
+    } else if name == route.cloud_provider {
         route.cloud_model.as_str()
+    } else {
+        spec.default_model.as_str()
     };
     Provider::new_with_key(
         spec.base_url.clone(),
