@@ -24,3 +24,5 @@ Those remain implementation work and are not marked complete.
 - Acceptance integration live run d7252703351f40a7b1d7928600d3bb1c — bwrap command printf accepted PASS; role artifacts, SQLite ledger, and keyed certificate emitted.
 
 - Corrective-edit integration unit suite — 10 tests PASS: strict patch parsing, protected-path rejection, backup/apply/rollback, ΔV, verifier, WAL. Live model-driven patch E2E was attempted but blocked by router model-load failure for Qwen3.5-0.8B-Q8_0; no product files were changed.
+
+- Live local corrective-edit E2E — PASS using llama.cpp Qwen3.5-9B-Q8_0 directly at 127.0.0.1:52544 (no Ollama): aiorg correct created fixed.txt through strict model patch JSON, scoped executor, backup protocol, and bwrap acceptance. Acceptance output: passed; summary: Created fixed.txt with content 'fixed' to satisfy acceptance criteria.

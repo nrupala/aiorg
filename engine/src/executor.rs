@@ -130,12 +130,29 @@ pub fn commit_backup(applied: &[AppliedPatch]) -> Result<()> {
 }
 
 pub fn parse_patch(raw: &str) -> Result<PatchPlan> {
-    let plan: PatchPlan =
-        serde_json::from_str(raw).context("engineer response was not strict patch JSON")?;
-    if plan.summary.trim().is_empty() {
-        bail!("patch summary is empty")
+    let mut candidates = Vec::new();
+    if let Some(start) = raw.find("```json") {
+        let body_start = start + "```json".len();
+        if let Some(end) = raw[body_start..].find("```") {
+            candidates.push(raw[body_start..body_start + end].trim().to_string());
+        }
     }
-    Ok(plan)
+    let mut cursor = 0;
+    while let Some(offset) = raw[cursor..].find('{') {
+        let start = cursor + offset;
+        if let Some(end) = raw[start..].rfind('}') {
+            candidates.push(raw[start..start + end + 1].to_string());
+        }
+        cursor = start + 1;
+    }
+    for candidate in candidates.into_iter().rev() {
+        if let Ok(plan) = serde_json::from_str::<PatchPlan>(&candidate) {
+            if !plan.summary.trim().is_empty() && !plan.edits.is_empty() {
+                return Ok(plan);
+            }
+        }
+    }
+    bail!("engineer response did not contain a valid patch JSON object")
 }
 
 pub fn run_bwrap(project: &Path, command: &str) -> Result<i32> {
@@ -219,5 +236,11 @@ mod tests {
     #[test]
     fn malformed_patch_rejected() {
         assert!(parse_patch("not-json").is_err());
+    }
+    #[test]
+    fn reasoning_and_fenced_patch_are_extracted() {
+        let raw = "reasoning {not the answer}\n```json\n{\"summary\":\"create file\",\"edits\":[{\"path\":\"fixed.txt\",\"content\":\"fixed\"}]}\n```";
+        let plan = parse_patch(raw).unwrap();
+        assert_eq!(plan.edits[0].path, "fixed.txt");
     }
 }

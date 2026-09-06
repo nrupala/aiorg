@@ -52,6 +52,7 @@ async fn main() -> Result<()> {
         Some("gate") => gate(args.get(2).map(String::as_str).unwrap_or(""))?,
         Some("sandbox") => sandbox(args.get(2).map(String::as_str).unwrap_or(""))?,
         Some("run") => run(&args[2..]).await?,
+        Some("correct") => correct(&args[2..]).await?,
         Some("status") => status(&args[2..])?,
         Some("certificate") => certificate(&args[2..])?,
         Some("serve") => server::serve(args.get(2).and_then(|v| v.parse().ok()).unwrap_or(8850))?,
@@ -73,7 +74,7 @@ fn roles() {
     }
 }
 fn help() {
-    println!("AIORG {}\n\nCommands:\n  run <brief> [--project DIR]\n  status [RUN_ID] [--project DIR]\n  certificate <RUN_ID> [--project DIR]\n  serve [PORT]\n  doctor\n  roles\n  gate <js-ts|python|rust|c|sql>\n  sandbox <wsl|host>", version());
+    println!("AIORG {}\n\nCommands:\n  run <brief> [--project DIR] [--acceptance CMD]\n  correct <brief> --project DIR --acceptance CMD\n  status [RUN_ID] [--project DIR]\n  certificate <RUN_ID> [--project DIR]\n  serve [PORT]\n  doctor\n  roles\n  gate <js-ts|python|rust|c|sql>\n  sandbox <wsl|host>", version());
 }
 
 async fn doctor() -> Result<()> {
@@ -313,6 +314,40 @@ async fn run(args: &[String]) -> Result<()> {
         root.display()
     );
     Ok(())
+}
+
+async fn correct(args: &[String]) -> Result<()> {
+    let project = project_arg(args)?;
+    let command = acceptance_arg(args).context("correct requires --acceptance")?;
+    let brief = args
+        .iter()
+        .take_while(|v| v.as_str() != "--project" && v.as_str() != "--acceptance")
+        .cloned()
+        .collect::<Vec<_>>()
+        .join(" ");
+    if brief.trim().is_empty() {
+        anyhow::bail!("correct requires a brief");
+    }
+    let scope = executor::Scope::new(&project, &[PathBuf::from(".")])?;
+    if executor::run_bwrap(&project, &command)? == 0 {
+        println!("acceptance=already_passed");
+        return Ok(());
+    }
+    let provider = Provider::new(router_url(), model())?;
+    provider.health().await?;
+    let prompt = format!("Acceptance command failed: {command}. Task: {brief}. Return ONLY JSON {{\"summary\":string,\"edits\":[{{\"path\":string,\"content\":string}}]}}. Make the smallest safe edit. Never edit .git or .aiorg. No markdown fences.");
+    let raw = provider.chat(None, &[json!({"role":"system","content":"You are an autonomous corrective Engineer. Return a strict patch JSON object."}), json!({"role":"user","content":prompt})], 2048).await?;
+    let plan = executor::parse_patch(&raw)?;
+    let backup = project.join(".aiorg/corrective-backup");
+    let applied = scope.apply(&plan, &backup)?;
+    if executor::run_bwrap(&project, &command)? == 0 {
+        executor::commit_backup(&applied)?;
+        println!("acceptance=passed\nsummary={}", plan.summary);
+        Ok(())
+    } else {
+        executor::rollback(&applied)?;
+        anyhow::bail!("corrective patch did not satisfy acceptance; rolled back")
+    }
 }
 
 fn acceptance_arg(args: &[String]) -> Option<String> {
