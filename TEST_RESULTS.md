@@ -22,3 +22,5 @@ execution, corrective cycles, delta-V enforcement, or full release verification.
 Those remain implementation work and are not marked complete.
 
 - Acceptance integration live run d7252703351f40a7b1d7928600d3bb1c — bwrap command printf accepted PASS; role artifacts, SQLite ledger, and keyed certificate emitted.
+
+- Corrective-edit integration unit suite — 10 tests PASS: strict patch parsing, protected-path rejection, backup/apply/rollback, ΔV, verifier, WAL. Live model-driven patch E2E was attempted but blocked by router model-load failure for Qwen3.5-0.8B-Q8_0; no product files were changed.

@@ -173,9 +173,9 @@ async fn run(args: &[String]) -> Result<()> {
         &root.join("run.json"),
         &json!({"run_id":run_id,"brief":brief,"status":"running","model":model()}),
     )?;
-    scope.write(Path::new(".aiorg/current-run"), run_id.as_bytes())?;
-    if scope.read(Path::new(".aiorg/current-run"))? != run_id.as_bytes() {
-        anyhow::bail!("scoped executor readback failed");
+    fs::write(project.join(".aiorg/current-run"), run_id.as_bytes())?;
+    if fs::read(project.join(".aiorg/current-run"))? != run_id.as_bytes() {
+        anyhow::bail!("run state readback failed");
     }
     let provider = Provider::new(router_url(), model())?;
     provider
@@ -239,6 +239,7 @@ async fn run(args: &[String]) -> Result<()> {
         let mut gate = converge::Converger::new(3, 2);
         gate.observe(1.0)?;
         let mut result = 1;
+        let mut applied_cycles: Vec<Vec<executor::AppliedPatch>> = Vec::new();
         for cycle in 1..=3 {
             result = executor::run_bwrap(&project, &command)?;
             store.event(
@@ -248,12 +249,19 @@ async fn run(args: &[String]) -> Result<()> {
             )?;
             if result == 0 {
                 gate.observe(0.0)?;
+                for applied in &applied_cycles {
+                    executor::commit_backup(applied)?;
+                }
                 break;
             }
-            let feedback = format!("Acceptance command failed with exit {result}: {command}. Produce a corrective implementation plan only; no execution claim.");
-            let corrective = provider.chat(Some("Qwen2.5-Coder-7b-instruct-q8_0"), &[json!({"role":"system","content":"You are the AIORG Engineer corrective-cycle role."}), json!({"role":"user","content":feedback})], 2048).await?;
-            let path = root.join(format!("corrective-{cycle}-engineer.md"));
-            fs::write(&path, corrective)?;
+            let feedback = format!("Acceptance command failed with exit {result}: {command}. Return ONLY JSON matching {{\"summary\":string,\"edits\":[{{\"path\":string,\"content\":string}}]}}. Make the smallest source edit that can fix the failure. Never edit .git or .aiorg. Do not include markdown fences.");
+            let corrective = provider.chat(Some(&model()), &[json!({"role":"system","content":"You are the AIORG Engineer corrective-cycle role. You return strict JSON patches only."}), json!({"role":"user","content":feedback})], 2048).await?;
+            let plan = executor::parse_patch(&corrective)?;
+            let backup_root = root.join("backups").join(cycle.to_string());
+            let applied = scope.apply(&plan, &backup_root)?;
+            store.event(&run_id, "corrective.patch.applied", &json!({"cycle":cycle,"summary":plan.summary,"edits":plan.edits.iter().map(|e| &e.path).collect::<Vec<_>>() }))?;
+            let path = root.join(format!("corrective-{cycle}-engineer.json"));
+            fs::write(&path, serde_json::to_vec_pretty(&plan)?)?;
             store.artifact(
                 &run_id,
                 &format!("corrective-{cycle}"),
@@ -261,8 +269,12 @@ async fn run(args: &[String]) -> Result<()> {
                 "engineer",
                 "aiorg-guard",
             )?;
+            applied_cycles.push(applied);
         }
         if result != 0 {
+            for applied in applied_cycles.iter().rev() {
+                executor::rollback(applied)?;
+            }
             anyhow::bail!("acceptance gate failed after three corrective cycles")
         }
         Some(result)

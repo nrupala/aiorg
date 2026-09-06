@@ -12,7 +12,7 @@ pub struct Provider {
 impl Provider {
     pub fn new(base_url: String, default_model: String) -> Result<Self> {
         let client = Client::builder()
-            .timeout(Duration::from_secs(180))
+            .timeout(Duration::from_secs(300))
             .connect_timeout(Duration::from_secs(30))
             .build()?;
         Ok(Self {
