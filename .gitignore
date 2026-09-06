@@ -8,3 +8,10 @@ data/
 # Scratch
 *.log
 .tmp/
+
+# AIORG provider API keys - never commit
+engine/config/providers.local.toml
+
+# AIORG provider API keys - never commit
+engine/config/providers.local.toml
+tests/fixtures/mcp/?*

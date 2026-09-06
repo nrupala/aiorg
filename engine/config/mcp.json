@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "foreign_servers": [
+    { "name": "cloudflare", "type": "remote", "url": "https://mcp.cloudflare.com/mcp", "enabled": true },
+    { "name": "cloudflare-docs", "type": "remote", "url": "https://docs.mcp.cloudflare.com/mcp", "enabled": true },
+    { "name": "cloudflare-bindings", "type": "remote", "url": "https://bindings.mcp.cloudflare.com/mcp", "enabled": true },
+    { "name": "cloudflare-observability", "type": "remote", "url": "https://observability.mcp.cloudflare.com/mcp", "enabled": true },
+    { "name": "context7", "type": "remote", "url": "https://mcp.context7.com/mcp", "enabled": true },
+    { "name": "gh_grep", "type": "remote", "url": "https://mcp.grep.app", "enabled": true },
+    { "name": "memory", "type": "local", "command": ["npx", "-y", "@modelcontextprotocol/server-memory"], "enabled": true },
+    { "name": "sequentialthinking", "type": "local", "command": ["npx", "-y", "@modelcontextprotocol/server-sequential-thinking"], "enabled": true },
+    { "name": "duckduckgo", "type": "local", "command": ["npx", "-y", "duckduckgo-mcp-server"], "enabled": true },
+    { "name": "arxiv", "type": "local", "command": ["npx", "-y", "arxiv-mcp-server"], "enabled": false },
+    { "name": "filesystem", "type": "local", "command": ["npx", "-y", "@modelcontextprotocol/server-filesystem", "C:/Users/nrupa/.config/opencode"], "enabled": true },
+    { "name": "puppeteer-browser", "type": "local", "command": ["npx", "-y", "@modelcontextprotocol/server-puppeteer"], "enabled": true },
+    { "name": "github", "type": "local", "command": ["docker", "run", "-i", "--rm", "-e", "GITHUB_PERSONAL_ACCESS_TOKEN", "ghcr.io/github/github-mcp-server"], "enabled": false },
+    { "name": "playwright", "type": "local", "command": ["docker", "run", "-i", "--rm", "mcp/playwright"], "enabled": false }
+  ]
+}

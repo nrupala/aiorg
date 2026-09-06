@@ -43,3 +43,7 @@ not evidence.
 - Never target Ollama or Docker.
 - Do not mark AIORG complete while any runtime path is a stub, placeholder, or
   unverified claim.
+
+## Simulated model routing
+
+Models are resolved per role via engine/config/aiorg.toml under one of three modes: local (llama.cpp router), hybrid (local primary with cloud fallback), or cloud (first reachable cloud provider). Provider secrets live in engine/config/providers.local.toml which is gitignored; env overrides AIORG_ROUTER_URL / AIORG_MODEL / AIORG_HOME select the effective endpoint. Remote free endpoints may 429/404; routing iterates configured providers and records failures.

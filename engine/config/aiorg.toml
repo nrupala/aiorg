@@ -1,0 +1,75 @@
+# AIORG model and provider routing (committed; secrets live in providers.local.toml)
+
+# Global default serving mode: local | hybrid | cloud
+mode = "hybrid"
+
+[providers.local]
+base_url = "http://127.0.0.1:8830"
+default_model = "Qwen3.5-9B-Q8_0"
+
+[providers.openrouter]
+base_url = "https://openrouter.ai/api"
+default_model = "google/gemma-4-31b-it:free"
+
+[providers.groq]
+base_url = "https://api.groq.com/openai"
+default_model = "openai/gpt-oss-20b"
+
+[providers.zen]
+base_url = "https://opencode.ai/zen"
+default_model = "mimo-v2.5-free"
+
+# Per-role routing. hybrid uses local first, falls back to cloud provider on failure.
+[roles.dispatcher]
+mode = "hybrid"
+local_model = "Qwen3.5-9B-Q8_0"
+cloud_provider = "openrouter"
+cloud_model = "google/gemma-4-31b-it:free"
+
+[roles.analyst]
+mode = "hybrid"
+local_model = "Qwen3.5-9B-Q8_0"
+cloud_provider = "openrouter"
+cloud_model = "google/gemma-4-31b-it:free"
+
+[roles.architect]
+mode = "hybrid"
+local_model = "Qwen3.5-9B-Q8_0"
+cloud_provider = "openrouter"
+cloud_model = "google/gemma-4-31b-it:free"
+
+[roles.planner]
+mode = "hybrid"
+local_model = "Qwen3.5-9B-Q8_0"
+cloud_provider = "openrouter"
+cloud_model = "minimax/minimax-m3:free"
+
+[roles.engineer]
+mode = "hybrid"
+local_model = "Qwen2.5-Coder-7b-instruct-q8_0"
+cloud_provider = "openrouter"
+cloud_model = "google/gemma-4-31b-it:free"
+
+[roles.reviewer]
+mode = "hybrid"
+local_model = "Qwen3.5-9B-Q8_0"
+cloud_provider = "openrouter"
+cloud_model = "nvidia/nemotron-3-super-120b-a12b:free"
+
+[roles.qa]
+mode = "hybrid"
+local_model = "Qwen3.5-9B-Q8_0"
+cloud_provider = "openrouter"
+cloud_model = "google/gemma-4-31b-it:free"
+
+[roles.security]
+mode = "hybrid"
+local_model = "Qwen3.5-9B-Q8_0"
+cloud_provider = "openrouter"
+cloud_model = "nvidia/nemotron-3-super-120b-a12b:free"
+
+[roles.release]
+mode = "hybrid"
+local_model = "Qwen3.5-9B-Q8_0"
+cloud_provider = "openrouter"
+cloud_model = "google/gemma-4-31b-it:free"
