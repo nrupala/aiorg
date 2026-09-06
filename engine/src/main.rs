@@ -9,8 +9,11 @@ use std::{
 };
 use uuid::Uuid;
 
+mod converge;
 mod executor;
+mod server;
 mod store;
+mod verifier;
 
 const ROLES: &[(&str, &str)] = &[
     (
@@ -51,6 +54,7 @@ async fn main() -> Result<()> {
         Some("run") => run(&args[2..]).await?,
         Some("status") => status(&args[2..])?,
         Some("certificate") => certificate(&args[2..])?,
+        Some("serve") => server::serve(args.get(2).and_then(|v| v.parse().ok()).unwrap_or(8850))?,
         Some("--help") | Some("-h") | None => help(),
         Some(command) => anyhow::bail!("unknown command: {command}"),
     }
@@ -69,7 +73,7 @@ fn roles() {
     }
 }
 fn help() {
-    println!("AIORG {}\n\nCommands:\n  run <brief> [--project DIR]\n  status [RUN_ID] [--project DIR]\n  certificate <RUN_ID> [--project DIR]\n  doctor\n  roles\n  gate <js-ts|python|rust|c|sql>\n  sandbox <wsl|host>", version());
+    println!("AIORG {}\n\nCommands:\n  run <brief> [--project DIR]\n  status [RUN_ID] [--project DIR]\n  certificate <RUN_ID> [--project DIR]\n  serve [PORT]\n  doctor\n  roles\n  gate <js-ts|python|rust|c|sql>\n  sandbox <wsl|host>", version());
 }
 
 async fn doctor() -> Result<()> {
@@ -184,7 +188,9 @@ async fn run(args: &[String]) -> Result<()> {
         json!({"type":"s0.health_pass"}),
     ];
     let mut prior_context = brief.clone();
+    let mut convergence = converge::Converger::new(9, 2);
     for (index, (role, mission)) in ROLES.iter().enumerate() {
+        convergence.observe(1.0 - ((index + 1) as f64 / ROLES.len() as f64))?;
         let role_contract = match *role {
             "dispatcher" => "Classify the brief and define the ordered pipeline. Do not write code.",
             "analyst" => "Write requirements with user stories and Given/When/Then acceptance criteria. Do not write code.",
@@ -233,14 +239,28 @@ async fn run(args: &[String]) -> Result<()> {
     let ledger_bytes = serde_json::to_vec_pretty(&ledger)?;
     fs::write(root.join("ledger.json"), &ledger_bytes)?;
     let certificate_hash = sha256(&ledger_bytes);
+    let key = env::var("AIORG_RUN_KEY").unwrap_or_else(|_| "local-development-key".into());
+    let cert = verifier::sign(
+        &run_id,
+        &ledger_bytes,
+        "aiorg-release",
+        "aiorg-guard",
+        key.as_bytes(),
+    )?;
+    verifier::verify(&cert, &ledger_bytes, key.as_bytes())?;
     write_json(
         &root.join("certificate.json"),
-        &json!({"run_id":run_id,"artifact_sha256":certificate_hash,"producer":"aiorg-release","verifier":"aiorg-guard","status":"issued","scope":"role-artifact-pipeline"}),
+        &serde_json::to_value(&cert)?,
+    )?;
+    verifier::verify_file(
+        &root.join("certificate.json"),
+        &root.join("ledger.json"),
+        key.as_bytes(),
     )?;
     store.close_run(&run_id, "artifact_pipeline_complete")?;
     write_json(
         &root.join("run.json"),
-        &json!({"run_id":run_id,"brief":brief,"status":"artifact_pipeline_complete","mode":"role-artifact-pipeline","artifacts":artifacts,"certificate_sha256":certificate_hash}),
+        &json!({"run_id":run_id,"brief":brief,"status":"artifact_pipeline_complete","mode":"role-artifact-pipeline","convergence_zero":convergence.converged(),"cycles":convergence.cycles().len(),"artifacts":artifacts,"certificate_sha256":certificate_hash}),
     )?;
     println!(
         "run_id={run_id}\nstatus=artifact_pipeline_complete\ncertificate_sha256={certificate_hash}\nartifacts={}",
@@ -281,12 +301,14 @@ fn certificate(args: &[String]) -> Result<()> {
     let id = args.first().context("certificate requires RUN_ID")?;
     let root = project_arg(args)?.join(".aiorg/runs").join(id);
     let ledger = fs::read(root.join("ledger.json"))?;
-    let hash = sha256(&ledger);
+    let key = env::var("AIORG_RUN_KEY").unwrap_or_else(|_| "local-development-key".into());
+    let cert = verifier::sign(id, &ledger, "aiorg-release", "aiorg-guard", key.as_bytes())?;
     write_json(
         &root.join("certificate.json"),
-        &json!({"run_id":id,"artifact_sha256":hash,"producer":"aiorg-release","verifier":"aiorg-guard","status":"issued"}),
+        &serde_json::to_value(&cert)?,
     )?;
-    println!("certificate=issued run_id={id} hash={hash}");
+    verifier::verify(&cert, &ledger, key.as_bytes())?;
+    println!("certificate=issued run_id={id} hash={}", cert.artifact_hash);
     Ok(())
 }
 fn write_json(path: &Path, value: &Value) -> Result<()> {
