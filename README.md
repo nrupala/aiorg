@@ -35,6 +35,7 @@ aiorg run "build a pomodoro CLI"             # full company pipeline
 | `docs/06-deployer-guide.md` | Prerequisites, install, engine bring-up, first-run verification, operations, troubleshooting |
 | `docs/07-execution-plan.md` | Build milestones M1–M7 with exit criteria, test matrix, risk register |
 | `docs/VERSIONING.md` | App versioning standard: VERSION source of truth, tag==VERSION guard, bump script, release workflow |
+| docs/opencode-aiorg-guidance.md | Required OpenCode operating method, convergence, verification, and PR discipline |
 | `org/sop/requester_template.toml` | Template for requesters to submit briefs + success criteria + budget; AIORG Dispatcher sequences through all 9 roles via CONVERGE pipeline |
 
 ## Non-negotiable design rules
