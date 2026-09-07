@@ -1,79 +1,164 @@
-# AIORG — Orchestrated AI Software Development Company
+# AIORG
 
-A self-contained, local-first multi-agent software company that runs entirely on
-your machine (llama.cpp router :8830), executes role-specialized agents through
-SOP-gated pipelines with deterministic verification, and exposes **each role as an
-individually callable function** for your ongoing code assignments.
+AIORG is a local-first, evidence-gated software delivery engine. It models a
+software company as nine role procedures and enforces their handoffs through
+artifacts, deterministic gates, a SQLite WAL ledger, scoped execution, WSL
+bubblewrap acceptance tests, convergence checks, and independent certificates.
 
-**Status: M1-M3 runtime foundation and the nine-role artifact pipeline are operational; the M4 project-editing CONVERGE loop remains incomplete.** The current binary produces role artifacts, ledger hashes, and certificates through the local llama.cpp router, but does not yet edit target repositories or execute QA acceptance suites automatically.
+AIORG is designed to run with OpenCode or another agent host. The host supplies
+interactive intent; AIORG supplies repeatable delivery policy and evidence.
 
-## The one-paragraph pitch
+## Current status
 
-AIORG encodes a software company as 9 specialized roles (Dispatcher, Requirements
-Analyst, Architect, Task Planner, Engineer, Reviewer, QA Engineer, Security
-Officer, Release Manager) connected by structured artifact contracts — never
-free-form chat — where every handoff passes a deterministic gate (tests, lint,
-build, checklist-as-code) and no agent is ever allowed to verify its own work.
-It runs on the llama.cpp router (:8830) already installed on
-this machine, keeps a tamper-evident append-only audit ledger, can replay any run
-deterministically, and lets you invoke any single role on any existing codebase:
+**Operational foundation; certified artifact delivery; project-editing loop
+available through constrained corrective patches.**
 
-```powershell
-aiorg ask reviewer --path D:\myproj          # one role, your live code
-aiorg run "build a pomodoro CLI"             # full company pipeline
+The current release has verified:
+
+- 11 Rust unit/integration tests passing.
+- `cargo clippy --all-targets -- -D warnings` passing.
+- SQLite WAL event and artifact ledger with tamper detection.
+- Scoped executor rejecting absolute paths, traversal, `.git`, and `.aiorg`.
+- Backup/apply/rollback corrective patch protocol.
+- WSL/bwrap process and network-isolated acceptance execution.
+- ΔV non-widening and stall/maximum-cycle guards.
+- Independent producer/verifier certificate checks.
+- Local, hybrid, and cloud per-role routing configuration.
+- stdio MCP server with `aiorg_run`, `aiorg_status`,
+  `aiorg_certificate_verify`, and `aiorg_ask_role` tools.
+- A real sovereign-core delivery: run
+  `9a920eee497d4c2a9462661e306927e7`, acceptance **69/69**, ledger chain
+  verified, certificate issued.
+
+The remaining engineering boundary is explicit: AIORG does not claim that every
+role output is correct merely because the model generated it. Acceptance tests,
+ledger evidence, and independent verification are required for release.
+
+## Architecture
+
+```text
+OpenCode / MCP client
+        |
+        v
+AIORG CLI or stdio MCP server
+        |
+        +-- role router: local llama.cpp, hybrid fallback, or cloud
+        +-- SQLite WAL ledger and artifact hashes
+        +-- scoped patch executor with backup/rollback
+        +-- WSL/bwrap acceptance runner
+        +-- ΔV convergence guard
+        +-- independent certificate verifier
+        |
+        v
+Project repository + test evidence + certificate
 ```
 
-## Documentation map (read in order)
+The default local endpoint is the llama.cpp OpenAI-compatible router at
+`http://127.0.0.1:8830`. Ollama and Docker are not runtime dependencies.
 
-| Doc | Contents |
-|---|---|
-| `docs/01-organization.md` | Charter, operating principles, all 9 roles in full detail, autonomy levels |
-| `docs/02-sop.md` | Standard Operating Procedures: stage-by-stage pipeline S0–S7, gates, message protocol |
-| `docs/03-guardrails.md` | Zero-trust / zero-knowledge / transparency controls, MAST failure counter-map |
-| `docs/04-architecture.md` | Flow of code: crates, data flow, store schema, provider layer, CLI/MCP reference |
-| `docs/05-walkthrough.md` | End-to-end narrative: one real assignment through every stage and gate |
-| `docs/06-deployer-guide.md` | Prerequisites, install, engine bring-up, first-run verification, operations, troubleshooting |
-| `docs/07-execution-plan.md` | Build milestones M1–M7 with exit criteria, test matrix, risk register |
-| `docs/VERSIONING.md` | App versioning standard: VERSION source of truth, tag==VERSION guard, bump script, release workflow |
-| docs/opencode-aiorg-guidance.md | Required OpenCode operating method, convergence, verification, and PR discipline |
-| `org/sop/requester_template.toml` | Template for requesters to submit briefs + success criteria + budget; AIORG Dispatcher sequences through all 9 roles via CONVERGE pipeline |
+## Repository layout
 
-## Non-negotiable design rules
+- `engine/src/main.rs` — CLI and role pipeline.
+- `engine/src/config.rs` — provider and per-role routing configuration.
+- `engine/src/store.rs` — SQLite WAL ledger and hash-chain verification.
+- `engine/src/executor.rs` — scopes, patch validation, backups, rollback, bwrap.
+- `engine/src/converge.rs` — ΔV and stall controls.
+- `engine/src/verifier.rs` — independent certificate signing/verification.
+- `engine/src/mcp.rs` — stdio MCP JSON-RPC server.
+- `engine/config/aiorg.toml` — committed provider/model policy.
+- `engine/config/providers.local.toml` — local secrets; gitignored.
+- `engine/config/mcp.json` — MCP registry policy.
+- `org/roles/` and `org/sop/` — role and procedure contracts.
+- `docs/` — architecture, SOPs, deployment, release, and OpenCode guidance.
+- `TEST_RESULTS.md` — observed verification evidence.
 
-1. Structure beats persona: gains come from SOPs, contracts, and independent
-   verification — never from "the model believes it's an expert".
-2. Verifier ≠ producer. Ever.
-3. Every claim carries machine-verifiable evidence; releases require a signed
-   Convergence Certificate.
-4. Agents communicate only through artifacts on disk plus typed envelopes.
-5. All policy is enforced in code, not prompt instructions.
-6. Local-first: zero cloud calls in the delivery path.
-7. No Docker. Sandbox = WSL/bwrap or Windows Job Objects.
+## Prerequisites
 
-## Requester SOP Template
+- Windows 11 with Rust stable and Cargo.
+- WSL2 with `bwrap` available inside the selected distribution.
+- Node.js 20+ for JavaScript acceptance gates and MCP helpers.
+- A running llama.cpp router at `127.0.0.1:8830` for local inference.
+- Optional free cloud provider keys in the ignored
+  `engine/config/providers.local.toml`.
 
-Use the template at `org/sop/requester_template.toml` to request AIORG deliver a
-specific outcome deterministically. Fill in Sections 1–3 (Brief, Success Criteria,
-Budget Cap) at minimum, save the file, and AIORG's Dispatcher will sequence through
-all 9 v1 roles via the CONVERGE pipeline. Outcomes include:
+No Ollama or Docker installation is required or used.
 
-- Convergence certificate (HMAC-SHA256, producer≠verifier)
-- ΔV≤0 budget enforcement report
-- Per-role gate pass/fail log
-- Token usage accounting
-- Escalation bundle (if any gate failed)
+## Build and verify
 
-**Example workflow:**
+From `D:\aiorg\engine`:
 
 ```powershell
-# 1. Copy and fill the template
-Copy-Item 'D:\aiorg\org\sop\requester_template.toml' 'D:\aiorg\org\sop\my-project.toml'
-# Edit my-project.toml with your brief, success criteria, and token cap
-
-# 2. Run AIORG on your brief
-aiorg run "my brief here"
-
-# 3. Check results
-aiorg status
-aiorg certificate_verify
+cargo fmt --all
+cargo test --all-targets
+cargo clippy --all-targets -- -D warnings
+cargo build
+..target\debug\aiorg.exe doctor
+..target\debug\aiorg.exe sandbox wsl
 ```
+
+The executable name in the code block is `target\debug\aiorg.exe`; the control
+character above is not part of the command. Use this exact command if copying:
+
+```powershell
+.\target\debug\aiorg.exe doctor
+```
+
+## Run a delivery
+
+```powershell
+.\target\debug\aiorg.exe run `
+  "Deliver the requested project outcome" `
+  --project D:\path\to\project `
+  --acceptance "cargo test --all-targets"
+```
+
+For a focused corrective cycle:
+
+```powershell
+.\target\debug\aiorg.exe correct `
+  "Fix the failing acceptance test" `
+  --project D:\path\to\project `
+  --acceptance "cargo test --all-targets"
+```
+
+A corrective model response must be strict patch JSON. AIORG validates paths,
+backs up overwritten files, applies only scoped edits, runs bwrap acceptance,
+and rolls back on failure.
+
+## MCP integration
+
+OpenCode can launch the local MCP server with:
+
+```json
+{
+  "aiorg": {
+    "type": "local",
+    "command": ["D:\\aiorg\\engine\\target\\debug\\aiorg.exe", "mcp"],
+    "enabled": true,
+    "timeout": 30000
+  }
+}
+```
+
+Restart OpenCode after changing its configuration. Inspect discovery with:
+
+```powershell
+opencode mcp list
+```
+
+## Evidence and release policy
+
+A release is not complete from model output alone. The release gate requires:
+
+1. Clean build, formatting, tests, and clippy.
+2. Real acceptance execution in WSL/bwrap.
+3. Artifact hashes and SQLite WAL chain verification.
+4. Certificate with distinct producer and verifier identities.
+5. Documentation matching the observed commands and limitations.
+6. A reviewable Git commit and pull request.
+
+See `docs/opencode-aiorg-guidance.md` and `docs/RELEASE-CHECKLIST.md`.
+
+## License
+
+Apache-2.0. See `LICENSE` and `NOTICE`.
