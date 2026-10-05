@@ -23,6 +23,19 @@ aiorg ask reviewer --path D:\myproj          # one role, your live code
 aiorg run "build a pomodoro CLI"             # full company pipeline
 ```
 
+## Build & test
+
+```powershell
+cd engine
+cargo build
+cargo test --all-targets
+cargo clippy --all-targets -- -D warnings
+```
+
+Verification gates are the definition of done (see `AGENTS.md`): tests and clippy
+must be observed green, never assumed. First-run verification and operations:
+`docs/06-deployer-guide.md`. Recorded test results: `TEST_RESULTS.md`.
+
 ## Documentation map (read in order)
 
 | Doc | Contents |
