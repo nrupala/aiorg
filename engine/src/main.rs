@@ -1,3 +1,4 @@
+// Copyright (c) 2026 Nrupal Akolkar. All rights reserved. See LICENSE.
 use anyhow::{Context, Result};
 use provider::Provider;
 use serde_json::{json, Value};

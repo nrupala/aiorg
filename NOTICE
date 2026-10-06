@@ -4,3 +4,5 @@ Copyright (c) 2026 Nrupal. All Rights Reserved. Proprietary.
 This product incorporates third-party software under its own licenses:
 - Rust ecosystem crates as pinned in engine/Cargo.lock (MIT/Apache-2.0 per crate).
 - SQLite via rusqlite "bundled" feature (Public Domain).
+
+Owned by Nrupal Akolkar.

@@ -1,3 +1,4 @@
+// Copyright (c) 2026 Nrupal Akolkar. All rights reserved. See LICENSE.
 use anyhow::{bail, Context, Result};
 use reqwest::Client;
 use serde_json::{json, Value};
